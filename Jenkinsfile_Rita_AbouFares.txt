@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Setup') {
+            steps {
+                bat '"C:\\Python314\\python.exe" -m venv venv'
+                bat 'venv\\Scripts\\python.exe -m pip install -r requirements.txt'
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m flake8 app.py'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m pytest'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deployment placeholder for Part 3.'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
