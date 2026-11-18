@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        DEPLOY_DIR = 'C:\\Users\\jenkins_rita\\AppData\\Local\\Jenkins\\.jenkins\\deployments\\jenkins_project'
+    }
+
     stages {
         stage('Setup') {
             steps {
@@ -11,26 +15,48 @@ pipeline {
 
         stage('Lint') {
             steps {
-                bat 'venv\\Scripts\\python.exe -m flake8 app.py'
+                bat 'venv\\Scripts\\python.exe -m flake8 app.py deploy.py'
             }
         }
 
         stage('Test') {
             steps {
-                bat 'venv\\Scripts\\python.exe -m pytest'
+                bat 'venv\\Scripts\\python.exe -m pytest --junitxml=test-results.xml'
+            }
+        }
+
+        stage('Coverage') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m coverage run --source=app -m pytest'
+                bat 'venv\\Scripts\\python.exe -m coverage report -m > coverage-report.txt'
+                bat 'type coverage-report.txt'
+                bat 'venv\\Scripts\\python.exe -m coverage xml -o coverage.xml'
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                bat 'venv\\Scripts\\python.exe -m bandit app.py deploy.py -f txt -o bandit-report.txt'
+                bat 'type bandit-report.txt'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deployment placeholder for Part 3.'
+                bat 'venv\\Scripts\\python.exe deploy.py --destination "%DEPLOY_DIR%"'
+                bat 'venv\\Scripts\\python.exe "%DEPLOY_DIR%\\app.py"'
             }
         }
     }
 
     post {
         always {
+            junit testResults: 'test-results.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: 'coverage.xml,coverage-report.txt,bandit-report.txt', allowEmptyArchive: true
+        }
+        cleanup {
             cleanWs()
         }
     }
 }
+
